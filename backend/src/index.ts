@@ -1,12 +1,11 @@
-import mongoose from 'mongoose';
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import session from "express-session";
 import { Request, Response } from "express";
 import { UserDataType } from "./type/type";
 import { User } from "./schema/user";
 import { Posts } from "./schema/post";
-
-const cors = require("cors");
-const express = require("express");
-const session = require("express-session");
 
 const app = express();
 const port = 5000;
@@ -21,7 +20,7 @@ const options = {
 };
 
 // Connect to the MongoDB database with Mongoose
-mongoose.connect(uri, options)
+mongoose.connect(uri)
   .then(() => {
     console.log("Connected to MongoDB with mongoose");
   })
