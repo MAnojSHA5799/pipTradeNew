@@ -1,31 +1,29 @@
-const { MongoClient } = require("mongodb");
-const mongoose = require("mongoose");
-const uri =
-  "mongodb+srv://manojshakya54:iXrwnqkXcQeQruWl@cluster0.5kpsa.mongodb.net/"; // replace with your MongoDB URI
-  
-mongoose.connect(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+import mongoose from 'mongoose';
 
-const client = new MongoClient(uri, {
+const uri = "mongodb+srv://manojshakya54:iXrwnqkXcQeQruWl@cluster0.5kpsa.mongodb.net/"; // replace with your MongoDB URI
+
+// Define Mongoose options
+const options = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-});
+};
+
+// Connect to the MongoDB database with Mongoose
+mongoose.connect(uri)
+  .then(() => {
+    console.log("Connected to MongoDB with mongoose");
+  })
+  .catch((err) => {
+    console.error("Error connecting to MongoDB with mongoose:", err);
+  });
 
 export default class DbConnection {
   constructor() {}
+  
+  // This class can handle mongoose-specific logic if needed
   connectToDatabase = async () => {
-    console.log("dataBase");
-    try {
-      await client.connect();
-      console.log("Connected successfully to MongoDB");
-
-      const database = client.db("your_database_name");
-      // You can now use the database object for queries
-      return database;
-    } catch (err) {
-      console.error(err);
-    }
+    console.log("Using mongoose for the connection");
+    // Mongoose automatically handles the connection pool, no need to manually connect
+    return mongoose.connection;
   };
 }
