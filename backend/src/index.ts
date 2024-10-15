@@ -59,16 +59,16 @@ app.use(
 );
 
 // Basic route
-app.get("/", async (req: any, res: any) => {
-  console.log("dataBaseIndex1");
-  try {
-    const database = await dbConnection.connectToDatabase();
-    const collections = await database.collections();
-    res.status(200).send(collections);
-  } catch (error: unknown) {
-    res.status(500).send(error);
-  }
-});
+// app.get("/", async (req: any, res: any) => {
+//   console.log("dataBaseIndex1");
+//   try {
+//     const database = await dbConnection.connectToDatabase();
+//     const collections = await database.collections();
+//     res.status(200).send(collections);
+//   } catch (error: unknown) {
+//     res.status(500).send(error);
+//   }
+// });
 
 app.post("/user/register", async (req: Request, res: Response) => {
   const userData: UserDataType = { ...req.body };
