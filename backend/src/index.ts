@@ -1,7 +1,5 @@
-// const { MongoClient } = require("mongodb");
-
-import DbConnection from "./dbConnection";
-import { Request, response, Response } from "express";
+import mongoose from 'mongoose';
+import { Request, Response } from "express";
 import { UserDataType } from "./type/type";
 import { User } from "./schema/user";
 import { Posts } from "./schema/post";
@@ -9,12 +7,44 @@ import { Posts } from "./schema/post";
 const cors = require("cors");
 const express = require("express");
 const session = require("express-session");
+
 const app = express();
 const port = 5000;
 
+// MongoDB connection setup
+const uri = "mongodb+srv://manojshakya54:iXrwnqkXcQeQruWl@cluster0.5kpsa.mongodb.net/"; // replace with your MongoDB URI
+
+// Define Mongoose options
+const options = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+};
+
+// Connect to the MongoDB database with Mongoose
+mongoose.connect(uri, options)
+  .then(() => {
+    console.log("Connected to MongoDB with mongoose");
+  })
+  .catch((err: Error) => { // Explicitly typing 'err'
+    console.error("Error connecting to MongoDB with mongoose:", err);
+  });
+
+// DbConnection class for handling mongoose-specific logic
+class DbConnection {
+  constructor() {}
+
+  // Connect to the database
+  connectToDatabase = async () => {
+    console.log("Using mongoose for the connection");
+    // Mongoose automatically handles the connection pool, no need to manually connect
+    return mongoose.connection;
+  };
+}
+
+const dbConnection = new DbConnection();
+
 // Middleware to parse JSON bodies
 app.use(express.json());
-const dbConnection = new DbConnection();
 app.use(
   cors({
     origin: "http://localhost:5001", // Allow only your front-end URL
@@ -45,16 +75,17 @@ app.post("/user/register", async (req: Request, res: Response) => {
   const userData: UserDataType = { ...req.body };
   try {
     const isAlreadyExist = !!(await User.find(userData));
-    if (isAlreadyExist) {
+    if (!isAlreadyExist) {
       await User.create(userData);
-      res.status(201).json({ message: "Succesfuly registered" });
+      res.status(201).json({ message: "Successfully registered" });
     } else {
-      res.status(409).json({ message: "User Already registered" });
+      res.status(409).json({ message: "User already registered" });
     }
   } catch (error: any) {
     res.status(400).json({ message: error?.message });
   }
 });
+
 app.post("/user/login", async (req: any, res: any) => {
   const userData: UserDataType = { ...req.body };
   console.log(userData);
@@ -70,6 +101,8 @@ app.post("/user/login", async (req: any, res: any) => {
     res.status(500).json({ message: error?.message });
   }
 });
+
+// Continue with the rest of your routes
 app.post("/request/send", async (req: any, res: any) => {
   const senderUserName = req.body.senderUsername;
   const recieverUserName = req.body.recieverUserName;
@@ -90,17 +123,18 @@ app.post("/request/send", async (req: any, res: any) => {
         { username: recieverUserName },
         { $push: { friendRequests: senderUserName } }
       );
-      res.status(200).send({ message: "Request Send" });
+      res.status(200).send({ message: "Request Sent" });
     }
   } catch (error: any) {
     res.status(500).json({ message: error?.message });
   }
 });
+
 app.post("/request/recieved/:action", async (req: any, res: any) => {
   try {
     const requestedUserName = req.body.requestedUserName;
     const activeUserName = req.body.activeUserName;
-    let response = { message: "Action Not Fond", statusCode: 404 };
+    let response = { message: "Action Not Found", statusCode: 404 };
     switch (req.params.action) {
       case "accept":
         const userAccept = await User.find(
@@ -151,27 +185,29 @@ app.post("/request/recieved/:action", async (req: any, res: any) => {
     res.status(500).json({ message: error?.message });
   }
 });
+
 app.post("/posts", async (req: any, res: any) => {
   const post = req.body.post;
   try {
     await Posts.create(post);
-    res.status(201).json({ message: "Succesfuly Posted" });
+    res.status(201).json({ message: "Successfully Posted" });
   } catch (error: any) {
     res.status(500).json({ message: error?.message });
   }
 });
+
 app.post("/posts/comment/:action", async (req: any, res: any) => {
   try {
     const postId = req.body.postId;
     const comment = req.body.comment;
-    let response = { message: "Post is not exist", statusCode: 500 };
+    let response = { message: "Post does not exist", statusCode: 500 };
     switch (req.params.action) {
       case "add":
         await Posts.findByIdAndUpdate(postId, { $push: { comments: comment } });
         response = { message: "Comment added", statusCode: 200 };
         break;
       default:
-        response = { message: "Action Not Fond", statusCode: 404 };
+        response = { message: "Action Not Found", statusCode: 404 };
         break;
     }
     res.status(response.statusCode).send(response.message);
@@ -179,6 +215,7 @@ app.post("/posts/comment/:action", async (req: any, res: any) => {
     res.status(500).json({ message: error?.message });
   }
 });
+
 app.post("/posts/friendPosts", async (req: any, res: any) => {
   try {
     const activeUserName = req.body.activeUserName;
@@ -186,7 +223,7 @@ app.post("/posts/friendPosts", async (req: any, res: any) => {
     const friends = user[0].friends;
     let allFriendsPosts: any[] = [];
     for (let friend of friends) {
-      const post = await Posts.find({ postBy: { friend } });
+      const post = await Posts.find({ postBy: friend });
       allFriendsPosts = [...allFriendsPosts, ...post];
     }
     res.status(200).send(allFriendsPosts);
@@ -194,6 +231,7 @@ app.post("/posts/friendPosts", async (req: any, res: any) => {
     res.status(500).json({ message: error?.message });
   }
 });
+
 app.post("/post/friendCommentedPosts", async (req: any, res: any) => {
   try {
     const activeUserName = req.body.activeUserName;
@@ -209,11 +247,12 @@ app.post("/post/friendCommentedPosts", async (req: any, res: any) => {
     res.status(500).json({ message: error?.message });
   }
 });
+
 app.post("/posts/like/:action", async (req: any, res: any) => {
   try {
     const postId = req.body.postId;
     const likedUsername = req.body.likedUsername;
-    let response = { message: "Action Not Fond", statusCode: 404 };
+    let response = { message: "Action Not Found", statusCode: 404 };
     switch (req.params.action) {
       case "add":
         await Posts.findByIdAndUpdate(postId, {
@@ -224,11 +263,12 @@ app.post("/posts/like/:action", async (req: any, res: any) => {
       default:
         break;
     }
-    res.status(response.statusCode).send({ message: response?.message });
+    res.status(response.statusCode).send(response.message);
   } catch (error: any) {
     res.status(500).json({ message: error?.message });
   }
 });
+
 // Start server
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
